@@ -21,6 +21,7 @@ import (
 	"reasonix/internal/nilutil"
 	"reasonix/internal/planmode"
 	"reasonix/internal/provider"
+	"reasonix/internal/security"
 	"reasonix/internal/tool"
 )
 
@@ -213,6 +214,30 @@ type Agent struct {
 	// headless runs (no interactive user). Set via SetAsker.
 	asker Asker
 
+	// sanitizer, when non-nil, runs tool output through a 5-step pipeline
+	// (unicode normalize, invisible char strip, perplexity, base64, patterns)
+	// to detect prompt injection before the output enters LLM context.
+	sanitizer *security.ContentSanitizer
+
+	// honeytokens, when non-nil, scans tool output for decoy credentials
+	// planted in the environment to detect exfiltration attempts.
+	honeytokens *security.HoneytokenManager
+
+	// anomalyDetector, when non-nil, profiles tool-call patterns and runs
+	// six detection algorithms against an EMA baseline to detect behavioral
+	// anomalies (writeAfterFetch, toolBurst, privilegeEscalation, etc.).
+	anomalyDetector *security.AnomalyDetector
+
+	// auditLog, when non-nil, receives structured security events (tool
+	// execute, block, deny, injection detect, etc.) with secret redaction.
+	auditLog *security.AuditLog
+
+	// turn tracks the current turn number for anomaly detection.
+	turn int
+
+	// nuclearYolo, when true, blocks git add/commit/push in bash commands.
+	nuclearYolo bool
+
 	// onPreEdit, when non-nil, is called with a writer tool's previewed change
 	// just before it runs — the seam the checkpoint store uses to snapshot a
 	// file's pre-edit content. Only fires for non-ReadOnly tools that implement
@@ -392,6 +417,37 @@ func (a *Agent) withReasoningLanguage(input string) string {
 // SetAsker installs the asker the `ask` tool uses to question the user.
 // Interactive frontends wire one in; headless runs leave it nil.
 func (a *Agent) SetAsker(as Asker) { a.asker = as }
+
+// SetSanitizer installs the ContentSanitizer for tool output scanning.
+// nil disables sanitization (the default).
+func (a *Agent) SetSanitizer(s *security.ContentSanitizer) { a.sanitizer = s }
+
+// SetHoneytokens installs the HoneytokenManager for exfiltration detection.
+// nil disables honeytoken scanning (the default).
+func (a *Agent) SetHoneytokens(h *security.HoneytokenManager) { a.honeytokens = h }
+
+// SetAnomalyDetector installs the AnomalyDetector for behavioral profiling.
+// nil disables anomaly detection (the default).
+func (a *Agent) SetAnomalyDetector(d *security.AnomalyDetector) { a.anomalyDetector = d }
+
+// SetAuditLog installs the AuditLog for security event recording.
+// nil disables audit logging (the default).
+func (a *Agent) SetAuditLog(l *security.AuditLog) { a.auditLog = l }
+
+// SetNuclearYolo enables NUCLEAR-YOLO mode: git add/commit/push are blocked
+// in bash commands. Write everything else freely — just don't commit.
+func (a *Agent) SetNuclearYolo(v bool) { a.nuclearYolo = v }
+
+// bashCommand extracts the command string from bash tool arguments.
+func (a *Agent) bashCommand(args json.RawMessage) string {
+	var p struct {
+		Command string `json:"command"`
+	}
+	if err := json.Unmarshal(args, &p); err != nil {
+		return ""
+	}
+	return p.Command
+}
 
 // SetMemoryQueue installs the sink the remember/forget tools use to apply a
 // memory change in the current session. The controller wires itself in.
@@ -683,6 +739,7 @@ func (a *Agent) Run(ctx context.Context, input string) (runErr error) {
 	graceRound := false
 	executorHandoff := a.executorHandoffGuard && strings.Contains(input, executorHandoffMarker)
 	for step := 0; a.maxSteps <= 0 || step < a.maxSteps || graceRound; step++ {
+		a.turn++
 		// Consume a queued steer and persist it to the session so it
 		// survives tab switches and history replay. The model sees it as
 		// guidance (with a prefix), not a new task. One cache miss per
@@ -1531,6 +1588,10 @@ func (a *Agent) executeBatch(ctx context.Context, calls []provider.ToolCall) []s
 	for i, c := range calls {
 		o := outcomes[i]
 		t, ok := a.tools.Get(c.Name)
+		// Record call for anomaly detection.
+		if a.anomalyDetector != nil {
+			a.anomalyDetector.RecordCall(c.Name, parseArgsMap(json.RawMessage(c.Arguments)), a.turn)
+		}
 		a.sink.Emit(event.Event{Kind: event.ToolResult, Tool: event.Tool{
 			ID:         c.ID,
 			Name:       c.Name,
@@ -1565,6 +1626,23 @@ func (a *Agent) executeBatch(ctx context.Context, calls []provider.ToolCall) []s
 	}
 	if !cancelled {
 		a.applyStormBreaker(calls, outcomes, results)
+	}
+	// Run anomaly detection after the batch completes.
+	if a.anomalyDetector != nil && !cancelled {
+		for _, anomaly := range a.anomalyDetector.CheckAll() {
+			a.sink.Emit(event.Event{
+				Kind:  event.Notice,
+				Level: event.LevelWarn,
+				Text:  fmt.Sprintf("anomaly detected: %s (%s) — %v", anomaly.Pattern, anomaly.Severity, anomaly.Details),
+			})
+			if a.auditLog != nil {
+				dj, _ := json.Marshal(anomaly.Details)
+				a.auditLog.Log(security.AuditEvent{
+					Event:   security.AuditAnomalyDetected,
+					Details: dj,
+				})
+			}
+		}
 	}
 	return results
 }
@@ -1770,6 +1848,20 @@ func (a *Agent) executeOne(ctx context.Context, call provider.ToolCall) toolOutc
 			errMsg:  "blocked by loop guard",
 		}
 	}
+	// NUCLEAR-YOLO: block git push/add/commit in bash commands.
+	if a.nuclearYolo && call.Name == "bash" {
+		cmd := a.bashCommand(json.RawMessage(call.Arguments))
+		if cmd != "" {
+			lower := strings.ToLower(strings.TrimSpace(cmd))
+			if strings.HasPrefix(lower, "git add") || strings.HasPrefix(lower, "git commit") || strings.HasPrefix(lower, "git push") {
+				return toolOutcome{
+					output:  "blocked: git add/commit/push is blocked in NUCLEAR-YOLO mode. Write files only — commit and push manually.",
+					blocked: true,
+					errMsg:  "blocked by NUCLEAR-YOLO git block",
+				}
+			}
+		}
+	}
 	if a.planMode.Load() {
 		// Translate the tool's optional plan-mode self-report into the policy's
 		// tri-state. Mirrors the t.(tool.Previewer) assertion precedent below.
@@ -1901,7 +1993,52 @@ func (a *Agent) executeOne(ctx context.Context, call provider.ToolCall) toolOutc
 		a.hooks.SubagentStop(ctx, result)
 	}
 	body, truncMsg := truncateToolOutput(result)
+	body = a.maybeSanitize(body, call.Name)
 	return toolOutcome{output: body, truncated: truncMsg != "", truncMsg: truncMsg}
+}
+
+// maybeSanitize runs tool output through the ContentSanitizer if one is
+// configured. Warnings are emitted as notice events.
+func (a *Agent) maybeSanitize(output string, toolName string) string {
+	// Step 0: Honeytoken scan — runs before sanitization so we catch patterns
+	// even in content that might be cleaned by later steps.
+	if a.honeytokens != nil {
+		if matches := a.honeytokens.Scan(output); len(matches) > 0 {
+			for _, m := range matches {
+				a.sink.Emit(event.Event{
+					Kind:  event.Notice,
+					Level: event.LevelWarn,
+					Text:  fmt.Sprintf("honeytoken detected: %s (%s) in %s output", m.Pattern, m.Value, toolName),
+				})
+				if a.auditLog != nil {
+					a.auditLog.Log(security.AuditEvent{
+						Event: security.AuditHoneytokenDetect,
+						Tool:  toolName,
+					})
+				}
+			}
+		}
+	}
+	if a.sanitizer == nil {
+		return output
+	}
+	result := a.sanitizer.Sanitize(output, toolName)
+	for _, w := range result.Warnings {
+		a.sink.Emit(event.Event{
+			Kind:  event.Notice,
+			Level: event.LevelWarn,
+			Text:  fmt.Sprintf("sanitizer: %s detected in %s output", w.Type, toolName),
+		})
+		if a.auditLog != nil {
+			wj, _ := json.Marshal(w)
+			a.auditLog.Log(security.AuditEvent{
+				Event:    security.AuditInjectionDetected,
+				Tool:     toolName,
+				Warnings: wj,
+			})
+		}
+	}
+	return result.Content
 }
 
 func (a *Agent) planModeBlocked(toolName string, readOnly, untrusted bool, safety planmode.PlanSafety, args json.RawMessage) (blocked bool, message string) {
@@ -2089,6 +2226,18 @@ func truncateToolOutput(s string) (string, string) {
 	notice := fmt.Sprintf("tool output truncated: %d of %d bytes elided", omitted, len(s))
 	body := head + fmt.Sprintf("\n\n…[truncated %d of %d bytes — rerun with narrower args to see the middle]…\n\n", omitted, len(s)) + tail
 	return body, notice
+}
+
+// parseArgsMap converts JSON tool arguments to a map for the anomaly detector.
+func parseArgsMap(raw json.RawMessage) map[string]any {
+	if len(raw) == 0 {
+		return nil
+	}
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return nil
+	}
+	return m
 }
 
 // snapToRuneBoundary returns s[lo:hi] with the bounds nudged outward until
