@@ -1,37 +1,36 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 
 	"reasonix/internal/event"
+	"reasonix/internal/provider"
 	"reasonix/internal/tool"
 )
 
 // fakeNukeTool is a minimal tool that records whether executeOne reached the
 // Execute phase, letting us verify NUCLEAR-YOLO blocks before execution.
 type fakeNukeTool struct {
-	name     string
-	readOnly bool
 	executed *bool
 }
 
-func (f fakeNukeTool) Name() string                { return f.name }
-func (f fakeNukeTool) Description() string          { return "fake" }
+func (f fakeNukeTool) Name() string                 { return "bash" }
+func (f fakeNukeTool) Description() string           { return "fake bash" }
 func (f fakeNukeTool) Schema() json.RawMessage       { return json.RawMessage(`{}`) }
-func (f fakeNukeTool) ReadOnly() bool                { return f.readOnly }
-func (f fakeNukeTool) Execute(_ any, _ json.RawMessage) (string, error) {
+func (f fakeNukeTool) ReadOnly() bool                { return false }
+func (f fakeNukeTool) Execute(_ context.Context, _ json.RawMessage) (string, error) {
 	*f.executed = true
 	return "executed", nil
 }
 
 // TestNuclearYoloBlocksGitCommands covers REX-64.
-// Verifies that git push/commit/add are blocked before the tool executes.
 func TestNuclearYoloBlocksGitCommands(t *testing.T) {
 	executed := false
 	reg := tool.NewRegistry()
-	reg.Add(fakeNukeTool{name: "bash", readOnly: false, executed: &executed})
+	reg.Add(fakeNukeTool{executed: &executed})
 
 	a := New(nil, reg, NewSession("nuke"), Options{}, event.Discard)
 	a.SetNuclearYolo(true)
@@ -57,17 +56,16 @@ func TestNuclearYoloBlocksGitCommands(t *testing.T) {
 			t.Errorf("REX-64: %q should be blocked, got output=%q", cmd, outcome.output)
 		}
 		if !strings.Contains(outcome.errMsg, "NUCLEAR-YOLO") {
-			t.Errorf("REX-64: wrong errMsg for %q: %q (want 'blocked by NUCLEAR-YOLO git block')", cmd, outcome.errMsg)
+			t.Errorf("REX-64: wrong errMsg for %q: %q", cmd, outcome.errMsg)
 		}
 	}
 }
 
 // TestNuclearYoloAllowsSafeGitCommands covers REX-64.
-// Verifies that git status/diff/log are NOT blocked.
 func TestNuclearYoloAllowsSafeGitCommands(t *testing.T) {
 	executed := false
 	reg := tool.NewRegistry()
-	reg.Add(fakeNukeTool{name: "bash", readOnly: false, executed: &executed})
+	reg.Add(fakeNukeTool{executed: &executed})
 
 	a := New(nil, reg, NewSession("nuke"), Options{}, event.Discard)
 	a.SetNuclearYolo(true)
@@ -100,10 +98,9 @@ func TestNuclearYoloAllowsSafeGitCommands(t *testing.T) {
 func TestNuclearYoloOffGitPushAllowed(t *testing.T) {
 	executed := false
 	reg := tool.NewRegistry()
-	reg.Add(fakeNukeTool{name: "bash", readOnly: false, executed: &executed})
+	reg.Add(fakeNukeTool{executed: &executed})
 
 	a := New(nil, reg, NewSession("nuke"), Options{}, event.Discard)
-	// nuclearYolo defaults to false — don't set it
 
 	args := json.RawMessage(`{"command":"git push origin main"}`)
 	outcome := a.executeOne(t.Context(), provider.ToolCall{
