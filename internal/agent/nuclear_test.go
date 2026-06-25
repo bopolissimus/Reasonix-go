@@ -17,10 +17,10 @@ type fakeNukeTool struct {
 	executed *bool
 }
 
-func (f fakeNukeTool) Name() string                 { return "bash" }
-func (f fakeNukeTool) Description() string           { return "fake bash" }
-func (f fakeNukeTool) Schema() json.RawMessage       { return json.RawMessage(`{}`) }
-func (f fakeNukeTool) ReadOnly() bool                { return false }
+func (f fakeNukeTool) Name() string            { return "bash" }
+func (f fakeNukeTool) Description() string     { return "fake bash" }
+func (f fakeNukeTool) Schema() json.RawMessage { return json.RawMessage(`{}`) }
+func (f fakeNukeTool) ReadOnly() bool          { return false }
 func (f fakeNukeTool) Execute(_ context.Context, _ json.RawMessage) (string, error) {
 	*f.executed = true
 	return "executed", nil
