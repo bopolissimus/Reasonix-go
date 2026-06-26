@@ -1,0 +1,298 @@
+# charm.land/bubbles/v2 v2.1.0
+## explicit; go 1.25.0
+charm.land/bubbles/v2/cursor
+charm.land/bubbles/v2/internal/memoization
+charm.land/bubbles/v2/internal/runeutil
+charm.land/bubbles/v2/key
+charm.land/bubbles/v2/spinner
+charm.land/bubbles/v2/textarea
+charm.land/bubbles/v2/viewport
+# charm.land/bubbletea/v2 v2.0.7
+## explicit; go 1.25.0
+charm.land/bubbletea/v2
+# charm.land/lipgloss/v2 v2.0.4
+## explicit; go 1.25.0
+charm.land/lipgloss/v2
+# github.com/BurntSushi/toml v1.6.0
+## explicit; go 1.18
+github.com/BurntSushi/toml
+github.com/BurntSushi/toml/internal
+# github.com/alecthomas/chroma/v2 v2.27.0
+## explicit; go 1.25
+github.com/alecthomas/chroma/v2
+github.com/alecthomas/chroma/v2/formatters
+github.com/alecthomas/chroma/v2/formatters/html
+github.com/alecthomas/chroma/v2/formatters/svg
+github.com/alecthomas/chroma/v2/lexers
+github.com/alecthomas/chroma/v2/styles
+# github.com/atotto/clipboard v0.1.4
+## explicit
+github.com/atotto/clipboard
+# github.com/charmbracelet/colorprofile v0.4.3
+## explicit; go 1.25.0
+github.com/charmbracelet/colorprofile
+# github.com/charmbracelet/ultraviolet v0.0.0-20260601155805-6cf7526a1b3f
+## explicit; go 1.25.0
+github.com/charmbracelet/ultraviolet
+# github.com/charmbracelet/x/ansi v0.11.7
+## explicit; go 1.24.2
+github.com/charmbracelet/x/ansi
+github.com/charmbracelet/x/ansi/kitty
+github.com/charmbracelet/x/ansi/parser
+# github.com/charmbracelet/x/term v0.2.2
+## explicit; go 1.24.0
+github.com/charmbracelet/x/term
+# github.com/charmbracelet/x/termios v0.1.1
+## explicit; go 1.18
+github.com/charmbracelet/x/termios
+# github.com/charmbracelet/x/windows v0.2.2
+## explicit; go 1.23.0
+github.com/charmbracelet/x/windows
+# github.com/clipperhouse/displaywidth v0.11.0
+## explicit; go 1.18
+github.com/clipperhouse/displaywidth
+# github.com/clipperhouse/uax29/v2 v2.7.0
+## explicit; go 1.18
+github.com/clipperhouse/uax29/v2/graphemes
+# github.com/danieljoos/wincred v1.2.3
+## explicit; go 1.18
+github.com/danieljoos/wincred
+# github.com/dlclark/regexp2/v2 v2.2.1
+## explicit; go 1.25
+github.com/dlclark/regexp2/v2
+github.com/dlclark/regexp2/v2/helpers
+github.com/dlclark/regexp2/v2/syntax
+# github.com/godbus/dbus/v5 v5.2.2
+## explicit; go 1.20
+github.com/godbus/dbus/v5
+# github.com/gogo/protobuf v1.3.2
+## explicit; go 1.15
+github.com/gogo/protobuf/gogoproto
+github.com/gogo/protobuf/proto
+github.com/gogo/protobuf/protoc-gen-gogo/descriptor
+# github.com/gorilla/websocket v1.5.0
+## explicit; go 1.12
+github.com/gorilla/websocket
+# github.com/larksuite/oapi-sdk-go/v3 v3.9.5
+## explicit; go 1.13
+github.com/larksuite/oapi-sdk-go/v3
+github.com/larksuite/oapi-sdk-go/v3/cache
+github.com/larksuite/oapi-sdk-go/v3/card
+github.com/larksuite/oapi-sdk-go/v3/channel/normalize
+github.com/larksuite/oapi-sdk-go/v3/channel/types
+github.com/larksuite/oapi-sdk-go/v3/core
+github.com/larksuite/oapi-sdk-go/v3/core/accesstoken
+github.com/larksuite/oapi-sdk-go/v3/core/accesstoken/authorizationcode
+github.com/larksuite/oapi-sdk-go/v3/core/accesstoken/refreshtoken
+github.com/larksuite/oapi-sdk-go/v3/event
+github.com/larksuite/oapi-sdk-go/v3/event/dispatcher
+github.com/larksuite/oapi-sdk-go/v3/event/dispatcher/callback
+github.com/larksuite/oapi-sdk-go/v3/service/acs
+github.com/larksuite/oapi-sdk-go/v3/service/acs/v1
+github.com/larksuite/oapi-sdk-go/v3/service/admin
+github.com/larksuite/oapi-sdk-go/v3/service/admin/v1
+github.com/larksuite/oapi-sdk-go/v3/service/aily
+github.com/larksuite/oapi-sdk-go/v3/service/aily/v1
+github.com/larksuite/oapi-sdk-go/v3/service/apaas
+github.com/larksuite/oapi-sdk-go/v3/service/apaas/v1
+github.com/larksuite/oapi-sdk-go/v3/service/application
+github.com/larksuite/oapi-sdk-go/v3/service/application/v5
+github.com/larksuite/oapi-sdk-go/v3/service/application/v6
+github.com/larksuite/oapi-sdk-go/v3/service/application/v7
+github.com/larksuite/oapi-sdk-go/v3/service/approval
+github.com/larksuite/oapi-sdk-go/v3/service/approval/v4
+github.com/larksuite/oapi-sdk-go/v3/service/attendance
+github.com/larksuite/oapi-sdk-go/v3/service/attendance/v1
+github.com/larksuite/oapi-sdk-go/v3/service/auth
+github.com/larksuite/oapi-sdk-go/v3/service/auth/v3
+github.com/larksuite/oapi-sdk-go/v3/service/auth/v4
+github.com/larksuite/oapi-sdk-go/v3/service/authen
+github.com/larksuite/oapi-sdk-go/v3/service/authen/v1
+github.com/larksuite/oapi-sdk-go/v3/service/baike
+github.com/larksuite/oapi-sdk-go/v3/service/baike/v1
+github.com/larksuite/oapi-sdk-go/v3/service/base
+github.com/larksuite/oapi-sdk-go/v3/service/base/v2
+github.com/larksuite/oapi-sdk-go/v3/service/bitable
+github.com/larksuite/oapi-sdk-go/v3/service/bitable/v1
+github.com/larksuite/oapi-sdk-go/v3/service/block
+github.com/larksuite/oapi-sdk-go/v3/service/block/v2
+github.com/larksuite/oapi-sdk-go/v3/service/board
+github.com/larksuite/oapi-sdk-go/v3/service/board/v1
+github.com/larksuite/oapi-sdk-go/v3/service/calendar
+github.com/larksuite/oapi-sdk-go/v3/service/calendar/v4
+github.com/larksuite/oapi-sdk-go/v3/service/cardkit
+github.com/larksuite/oapi-sdk-go/v3/service/cardkit/v1
+github.com/larksuite/oapi-sdk-go/v3/service/compensation
+github.com/larksuite/oapi-sdk-go/v3/service/compensation/v1
+github.com/larksuite/oapi-sdk-go/v3/service/contact
+github.com/larksuite/oapi-sdk-go/v3/service/contact/v3
+github.com/larksuite/oapi-sdk-go/v3/service/corehr
+github.com/larksuite/oapi-sdk-go/v3/service/corehr/v1
+github.com/larksuite/oapi-sdk-go/v3/service/corehr/v2
+github.com/larksuite/oapi-sdk-go/v3/service/directory
+github.com/larksuite/oapi-sdk-go/v3/service/directory/v1
+github.com/larksuite/oapi-sdk-go/v3/service/docs
+github.com/larksuite/oapi-sdk-go/v3/service/docs/v1
+github.com/larksuite/oapi-sdk-go/v3/service/document_ai
+github.com/larksuite/oapi-sdk-go/v3/service/document_ai/v1
+github.com/larksuite/oapi-sdk-go/v3/service/docx
+github.com/larksuite/oapi-sdk-go/v3/service/docx/v1
+github.com/larksuite/oapi-sdk-go/v3/service/drive
+github.com/larksuite/oapi-sdk-go/v3/service/drive/v1
+github.com/larksuite/oapi-sdk-go/v3/service/drive/v2
+github.com/larksuite/oapi-sdk-go/v3/service/ehr
+github.com/larksuite/oapi-sdk-go/v3/service/ehr/v1
+github.com/larksuite/oapi-sdk-go/v3/service/elearning
+github.com/larksuite/oapi-sdk-go/v3/service/elearning/v2
+github.com/larksuite/oapi-sdk-go/v3/service/event
+github.com/larksuite/oapi-sdk-go/v3/service/event/v1
+github.com/larksuite/oapi-sdk-go/v3/service/ext
+github.com/larksuite/oapi-sdk-go/v3/service/helpdesk
+github.com/larksuite/oapi-sdk-go/v3/service/helpdesk/v1
+github.com/larksuite/oapi-sdk-go/v3/service/hire
+github.com/larksuite/oapi-sdk-go/v3/service/hire/v1
+github.com/larksuite/oapi-sdk-go/v3/service/hire/v2
+github.com/larksuite/oapi-sdk-go/v3/service/human_authentication
+github.com/larksuite/oapi-sdk-go/v3/service/human_authentication/v1
+github.com/larksuite/oapi-sdk-go/v3/service/im
+github.com/larksuite/oapi-sdk-go/v3/service/im/v1
+github.com/larksuite/oapi-sdk-go/v3/service/im/v2
+github.com/larksuite/oapi-sdk-go/v3/service/lingo
+github.com/larksuite/oapi-sdk-go/v3/service/lingo/v1
+github.com/larksuite/oapi-sdk-go/v3/service/mail
+github.com/larksuite/oapi-sdk-go/v3/service/mail/v1
+github.com/larksuite/oapi-sdk-go/v3/service/mdm
+github.com/larksuite/oapi-sdk-go/v3/service/mdm/v1
+github.com/larksuite/oapi-sdk-go/v3/service/mdm/v3
+github.com/larksuite/oapi-sdk-go/v3/service/meeting_room
+github.com/larksuite/oapi-sdk-go/v3/service/meeting_room/v1
+github.com/larksuite/oapi-sdk-go/v3/service/minutes
+github.com/larksuite/oapi-sdk-go/v3/service/minutes/v1
+github.com/larksuite/oapi-sdk-go/v3/service/moments
+github.com/larksuite/oapi-sdk-go/v3/service/moments/v1
+github.com/larksuite/oapi-sdk-go/v3/service/okr
+github.com/larksuite/oapi-sdk-go/v3/service/okr/v1
+github.com/larksuite/oapi-sdk-go/v3/service/optical_char_recognition
+github.com/larksuite/oapi-sdk-go/v3/service/optical_char_recognition/v1
+github.com/larksuite/oapi-sdk-go/v3/service/passport
+github.com/larksuite/oapi-sdk-go/v3/service/passport/v1
+github.com/larksuite/oapi-sdk-go/v3/service/payroll
+github.com/larksuite/oapi-sdk-go/v3/service/payroll/v1
+github.com/larksuite/oapi-sdk-go/v3/service/performance
+github.com/larksuite/oapi-sdk-go/v3/service/performance/v1
+github.com/larksuite/oapi-sdk-go/v3/service/performance/v2
+github.com/larksuite/oapi-sdk-go/v3/service/personal_settings
+github.com/larksuite/oapi-sdk-go/v3/service/personal_settings/v1
+github.com/larksuite/oapi-sdk-go/v3/service/report
+github.com/larksuite/oapi-sdk-go/v3/service/report/v1
+github.com/larksuite/oapi-sdk-go/v3/service/search
+github.com/larksuite/oapi-sdk-go/v3/service/search/v2
+github.com/larksuite/oapi-sdk-go/v3/service/security_and_compliance
+github.com/larksuite/oapi-sdk-go/v3/service/security_and_compliance/v1
+github.com/larksuite/oapi-sdk-go/v3/service/security_and_compliance/v2
+github.com/larksuite/oapi-sdk-go/v3/service/sheets
+github.com/larksuite/oapi-sdk-go/v3/service/sheets/v3
+github.com/larksuite/oapi-sdk-go/v3/service/spark
+github.com/larksuite/oapi-sdk-go/v3/service/spark/v1
+github.com/larksuite/oapi-sdk-go/v3/service/speech_to_text
+github.com/larksuite/oapi-sdk-go/v3/service/speech_to_text/v1
+github.com/larksuite/oapi-sdk-go/v3/service/task
+github.com/larksuite/oapi-sdk-go/v3/service/task/v1
+github.com/larksuite/oapi-sdk-go/v3/service/task/v2
+github.com/larksuite/oapi-sdk-go/v3/service/tenant
+github.com/larksuite/oapi-sdk-go/v3/service/tenant/v2
+github.com/larksuite/oapi-sdk-go/v3/service/translation
+github.com/larksuite/oapi-sdk-go/v3/service/translation/v1
+github.com/larksuite/oapi-sdk-go/v3/service/trust_party
+github.com/larksuite/oapi-sdk-go/v3/service/trust_party/v1
+github.com/larksuite/oapi-sdk-go/v3/service/vc
+github.com/larksuite/oapi-sdk-go/v3/service/vc/v1
+github.com/larksuite/oapi-sdk-go/v3/service/verification
+github.com/larksuite/oapi-sdk-go/v3/service/verification/v1
+github.com/larksuite/oapi-sdk-go/v3/service/wiki
+github.com/larksuite/oapi-sdk-go/v3/service/wiki/v1
+github.com/larksuite/oapi-sdk-go/v3/service/wiki/v2
+github.com/larksuite/oapi-sdk-go/v3/service/workplace
+github.com/larksuite/oapi-sdk-go/v3/service/workplace/v1
+github.com/larksuite/oapi-sdk-go/v3/ws
+# github.com/lucasb-eyer/go-colorful v1.4.0
+## explicit; go 1.12
+github.com/lucasb-eyer/go-colorful
+# github.com/mattn/go-runewidth v0.0.24
+## explicit; go 1.20
+github.com/mattn/go-runewidth
+# github.com/muesli/cancelreader v0.2.2
+## explicit; go 1.17
+github.com/muesli/cancelreader
+# github.com/rivo/uniseg v0.4.7
+## explicit; go 1.18
+github.com/rivo/uniseg
+# github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
+## explicit; go 1.13
+github.com/sabhiram/go-gitignore
+# github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e
+## explicit; go 1.19
+github.com/xo/terminfo
+# github.com/yuin/goldmark v1.8.2
+## explicit; go 1.22
+github.com/yuin/goldmark
+github.com/yuin/goldmark/ast
+github.com/yuin/goldmark/extension
+github.com/yuin/goldmark/extension/ast
+github.com/yuin/goldmark/parser
+github.com/yuin/goldmark/renderer
+github.com/yuin/goldmark/renderer/html
+github.com/yuin/goldmark/text
+github.com/yuin/goldmark/util
+# github.com/zalando/go-keyring v0.2.8
+## explicit; go 1.18
+github.com/zalando/go-keyring
+github.com/zalando/go-keyring/internal/shellescape
+github.com/zalando/go-keyring/secret_service
+# go.uber.org/goleak v1.3.0
+## explicit; go 1.20
+go.uber.org/goleak
+go.uber.org/goleak/internal/stack
+# golang.org/x/crypto v0.53.0
+## explicit; go 1.25.0
+golang.org/x/crypto/bcrypt
+golang.org/x/crypto/blowfish
+# golang.org/x/image v0.43.0
+## explicit; go 1.25.0
+golang.org/x/image/draw
+golang.org/x/image/math/f64
+golang.org/x/image/riff
+golang.org/x/image/vp8
+golang.org/x/image/vp8l
+golang.org/x/image/webp
+# golang.org/x/mod v0.37.0
+## explicit; go 1.25.0
+golang.org/x/mod/semver
+# golang.org/x/net v0.56.0
+## explicit; go 1.25.0
+golang.org/x/net/http/httpproxy
+golang.org/x/net/idna
+golang.org/x/net/internal/socks
+golang.org/x/net/proxy
+golang.org/x/net/websocket
+# golang.org/x/sync v0.21.0
+## explicit; go 1.25.0
+golang.org/x/sync/errgroup
+# golang.org/x/sys v0.46.0
+## explicit; go 1.25.0
+golang.org/x/sys/plan9
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+# golang.org/x/term v0.44.0
+## explicit; go 1.25.0
+golang.org/x/term
+# golang.org/x/text v0.38.0
+## explicit; go 1.25.0
+golang.org/x/text/encoding
+golang.org/x/text/encoding/internal
+golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/encoding/simplifiedchinese
+golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
+golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/norm
