@@ -76,13 +76,13 @@ func (a *approvalManager) preApproved(tool, subject string) bool {
 
 // register allocates an approval ID, records the pending prompt, and returns the
 // reply channel the resolve path will signal.
-func (a *approvalManager) register(tool, subject string) (string, chan approvalReply) {
+func (a *approvalManager) register(tool, subject, source string) (string, chan approvalReply) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.nextID++
 	id := strconv.Itoa(a.nextID)
 	reply := make(chan approvalReply, 1)
-	a.approvals[id] = pendingApproval{tool: tool, subject: subject, autoDrain: a.autoApprovalWouldAllowLocked(tool, subject), reply: reply}
+	a.approvals[id] = pendingApproval{tool: tool, subject: subject, source: source, autoDrain: a.autoApprovalWouldAllowLocked(tool, subject), reply: reply}
 	return id, reply
 }
 
@@ -199,7 +199,7 @@ func (a *approvalManager) snapshotPrompts() ([]event.Approval, []event.Ask) {
 	defer a.mu.Unlock()
 	approvals := make([]event.Approval, 0, len(a.approvals))
 	for id, p := range a.approvals {
-		approvals = append(approvals, event.Approval{ID: id, Tool: p.tool, Subject: p.subject})
+		approvals = append(approvals, event.Approval{ID: id, Tool: p.tool, Subject: p.subject, Source: p.source})
 	}
 	asks := make([]event.Ask, 0, len(a.asks))
 	for id, p := range a.asks {
@@ -278,14 +278,18 @@ func requiresFreshApprovalTool(tool string) bool {
 	}
 }
 
-func approvalNotificationText(tool, subject string) string {
+func approvalNotificationText(tool, subject, source string) string {
+	prefix := "approval needed"
+	if source != "" {
+		prefix += " [" + source + "]"
+	}
 	if requiresFreshApprovalTool(tool) {
-		return "approval needed: " + tool
+		return prefix + ": " + tool
 	}
 	if subject == "" {
-		return "approval needed: " + tool
+		return prefix + ": " + tool
 	}
-	return "approval needed: " + tool + " " + subject
+	return prefix + ": " + tool + " " + subject
 }
 
 func permissionRequestHookPayload(tool, subject string, args json.RawMessage) (string, json.RawMessage, bool) {

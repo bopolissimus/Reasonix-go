@@ -155,14 +155,16 @@ type Controller struct {
 }
 
 type approvalReply struct {
-	allow   bool
-	session bool
-	persist bool // true = write "always allow" rule to config
+	allow    bool
+	session  bool
+	persist  bool   // true = write "always allow" rule to config
+	redirect string // REX-73: if non-empty, "tell me what to do instead" text
 }
 
 type pendingApproval struct {
 	tool      string
 	subject   string
+	source    string // sub-agent name when originating from a delegated task
 	autoDrain bool
 	reply     chan approvalReply
 }
@@ -3133,15 +3135,17 @@ func (c *Controller) requestApproval(ctx context.Context, tool, subject string, 
 	if c.approval.preApproved(tool, subject) {
 		return true, false, nil
 	}
-	id, reply := c.approval.register(tool, subject)
+	// REX-72: read sub-agent source identity from context.
+	source := agent.SourceNameFromContext(ctx)
+	id, reply := c.approval.register(tool, subject, source)
 
-	c.sink.Emit(event.Event{Kind: event.ApprovalRequest, Approval: event.Approval{ID: id, Tool: tool, Subject: subject}})
+	c.sink.Emit(event.Event{Kind: event.ApprovalRequest, Approval: event.Approval{ID: id, Tool: tool, Subject: subject, Source: source}})
 	if hookSubject, hookArgs, ok := permissionRequestHookPayload(tool, subject, args); ok {
 		go c.hooks.PermissionRequest(ctx, tool, hookSubject, hookArgs)
 	}
 	// The agent now needs the user's attention; a Notification hook can ping an
 	// external channel (desktop notice, phone) while the run blocks on the reply.
-	go c.hooks.Notification(ctx, approvalNotificationText(tool, subject))
+	go c.hooks.Notification(ctx, approvalNotificationText(tool, subject, source))
 
 	waitCtx, cancelWait := c.approval.waitContext(ctx)
 	defer cancelWait()
@@ -3155,6 +3159,10 @@ func (c *Controller) requestApproval(ctx context.Context, tool, subject string, 
 		}
 		if r.allow && r.persist && !requiresFreshApprovalTool(tool) && c.onRemember != nil {
 			c.emitRememberResult(c.onRemember(permission.RememberRuleForScope(tool, subject)))
+		}
+		// REX-73: if denied with redirect text, surface it to the model as guidance.
+		if !r.allow && r.redirect != "" {
+			return false, false, fmt.Errorf("redirect: %s", r.redirect)
 		}
 		return r.allow, false, nil
 	case <-waitCtx.Done():

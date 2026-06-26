@@ -63,10 +63,11 @@ type userImagesContextKey struct{}
 // executed and sink is the agent's event sink (the `task` tool uses both to nest
 // a sub-agent's events under this call); asker lets the `ask` tool reach the user.
 type callContext struct {
-	parentID string
-	sink     event.Sink
-	asker    Asker
-	planMode bool
+	parentID   string
+	sink       event.Sink
+	asker      Asker
+	planMode   bool
+	sourceName string // sub-agent name when executing under a delegated task
 }
 
 // withCallContext stamps ctx with the executing call's ID, the agent's sink, and
@@ -93,6 +94,24 @@ func CallContext(ctx context.Context) (parentID string, sink event.Sink, asker A
 func PlanModeFromContext(ctx context.Context) bool {
 	cc, ok := ctx.Value(callContextKey{}).(callContext)
 	return ok && cc.planMode
+}
+
+// sourceNameCtxKey is the context key for sub-agent source identity (REX-72).
+type sourceNameCtxKey struct{}
+
+// SourceNameFromContext returns the task description of the sub-agent that
+// spawned this tool call, or "" for direct (non-sub-agent) calls.
+func SourceNameFromContext(ctx context.Context) string {
+	if v := ctx.Value(sourceNameCtxKey{}); v != nil {
+		return v.(string)
+	}
+	return ""
+}
+
+// WithSourceName stamps the sub-agent task description onto ctx so approval
+// prompts can identify which delegated task triggered the permission check.
+func WithSourceName(ctx context.Context, name string) context.Context {
+	return context.WithValue(ctx, sourceNameCtxKey{}, name)
 }
 
 // WithParentSession stamps the active parent session ID onto a turn context so
@@ -237,6 +256,12 @@ type Agent struct {
 
 	// nuclearYolo, when true, blocks git add/commit/push in bash commands.
 	nuclearYolo bool
+
+	// dataNonce is a per-turn random boundary token for wrapping untrusted
+	// tool outputs (REX-88: "StruQ + Spotlighting" nonce-based delimiters).
+	// It is regenerated at the start of each turn so an attacker cannot
+	// predict it and inject a closing </data> tag.
+	dataNonce string
 
 	// onPreEdit, when non-nil, is called with a writer tool's previewed change
 	// just before it runs — the seam the checkpoint store uses to snapshot a
@@ -740,6 +765,8 @@ func (a *Agent) Run(ctx context.Context, input string) (runErr error) {
 	executorHandoff := a.executorHandoffGuard && strings.Contains(input, executorHandoffMarker)
 	for step := 0; a.maxSteps <= 0 || step < a.maxSteps || graceRound; step++ {
 		a.turn++
+		// Generate a new data nonce for this turn (REX-88).
+		a.dataNonce = security.DataNonce()
 		// Consume a queued steer and persist it to the session so it
 		// survives tab switches and history replay. The model sees it as
 		// guidance (with a prefix), not a new task. One cache miss per
@@ -1930,6 +1957,10 @@ func (a *Agent) executeOne(ctx context.Context, call provider.ToolCall) toolOutc
 		}
 	}
 	cctx := withCallContext(ctx, call.ID, a.sink, a.asker, a.planMode.Load())
+	// REX-72: source name from context → stamp on call context for approvals
+	if src := ctx.Value(sourceNameCtxKey{}); src != nil {
+		cctx = context.WithValue(cctx, sourceNameCtxKey{}, src)
+	}
 	if a.evidence != nil {
 		cctx = evidence.WithLedger(cctx, a.evidence)
 		cctx = evidence.WithSessionMessages(cctx, a.session.Snapshot())
@@ -2020,7 +2051,7 @@ func (a *Agent) maybeSanitize(output string, toolName string) string {
 		}
 	}
 	if a.sanitizer == nil {
-		return output
+		return a.wrapNonce(output, toolName)
 	}
 	result := a.sanitizer.Sanitize(output, toolName)
 	for _, w := range result.Warnings {
@@ -2038,7 +2069,7 @@ func (a *Agent) maybeSanitize(output string, toolName string) string {
 			})
 		}
 	}
-	return result.Content
+	return a.wrapNonce(result.Content, toolName)
 }
 
 func (a *Agent) planModeBlocked(toolName string, readOnly, untrusted bool, safety planmode.PlanSafety, args json.RawMessage) (blocked bool, message string) {
@@ -2269,4 +2300,13 @@ func finishReasonMessage(u *provider.Usage) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+// wrapNonce wraps tool output in a <data> delimiter with the current turn's
+// random nonce. REX-88: "StruQ + Spotlighting" nonce-based delimiters.
+func (a *Agent) wrapNonce(output, source string) string {
+	if a.dataNonce == "" {
+		return output
+	}
+	return fmt.Sprintf("<data id=%q source=%q>\n%s\n</data>", a.dataNonce, source, output)
 }

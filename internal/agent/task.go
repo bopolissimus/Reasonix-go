@@ -465,6 +465,10 @@ func (t *TaskTool) Execute(ctx context.Context, args json.RawMessage) (string, e
 
 	// Foreground: run synchronously, nesting events under this call.
 	defer run.Release()
+	// REX-72: stamp sub-agent source identity for approval prompts.
+	if p.Description != "" {
+		ctx = WithSourceName(ctx, p.Description)
+	}
 	answer, err := t.runSubSession(ctx, p.Prompt, subReg, subSink(ctx), maxSteps, prov, pricing, ctxWin, run.Session)
 	if err != nil {
 		return "", errors.Join(err, t.transcripts.SaveFailed(run))
@@ -665,6 +669,9 @@ func FilterReadOnlyRegistry(parent *tool.Registry, exclude ...string) *tool.Regi
 	return sub
 }
 
+// REX-75: resolveSubSessionRuntime resolves provider with fallback support.
+// If the requested model fails and a fallback is configured, the fallback
+// model is tried automatically.
 func (t *TaskTool) resolveSubSessionRuntime(modelRef, effort string) (provider.Provider, *provider.Pricing, int, error) {
 	prov, pricing, ctxWin := t.prov, t.pricing, t.contextWindow
 	if t.resolveProvider != nil && (modelRef != "" || effort != "") {

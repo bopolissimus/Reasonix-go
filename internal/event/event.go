@@ -150,6 +150,7 @@ type Approval struct {
 	ID      string
 	Tool    string
 	Subject string
+	Source  string // sub-agent name when this approval originates from a delegated task, empty for direct calls
 }
 
 // AskOption is one choice the user can pick for an AskQuestion.

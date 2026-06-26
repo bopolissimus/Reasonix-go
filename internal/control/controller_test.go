@@ -894,13 +894,13 @@ func TestMemoryApprovalSubjectsAndNotifications(t *testing.T) {
 	if forgetSubject != `Archive memory "wrong-memory"` {
 		t.Fatalf("forget approval subject = %q", forgetSubject)
 	}
-	if got := approvalNotificationText("remember", "Save/update memory with private details"); got != "approval needed: remember" {
+	if got := approvalNotificationText("remember", "Save/update memory with private details", ""); got != "approval needed: remember" {
 		t.Fatalf("remember notification = %q", got)
 	}
-	if got := approvalNotificationText("forget", `Archive memory "wrong-memory"`); got != "approval needed: forget" {
+	if got := approvalNotificationText("forget", `Archive memory "wrong-memory"`, ""); got != "approval needed: forget" {
 		t.Fatalf("forget notification = %q", got)
 	}
-	if got := approvalNotificationText("bash", "go test ./..."); got != "approval needed: bash go test ./..." {
+	if got := approvalNotificationText("bash", "go test ./...", ""); got != "approval needed: bash go test ./..." {
 		t.Fatalf("bash notification = %q", got)
 	}
 	moveSubject := approvalDisplaySubject("move_file", "src/a.md", json.RawMessage(`{"source_path":"src/a.md","destination_path":"docs/a.md"}`))
