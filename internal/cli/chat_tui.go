@@ -87,6 +87,10 @@ type chatTUI struct {
 	// marker rides in outgoing user messages so the cache-stable prompt prefix is
 	// left untouched.
 	planMode bool
+	// showWorkspace toggles the workspace path tag in the status line (Ctrl+H).
+	showWorkspace bool
+	// redirectInput, when true, means the user pressed 'r' during approval. REX-73.
+	redirectInput bool
 	// yoloRestoreToolApprovalMode remembers the Ask/Auto base mode that Ctrl+Y
 	// should restore after a desktop-style YOLO toggle.
 	yoloRestoreToolApprovalMode string
@@ -1066,8 +1070,11 @@ func (m chatTUI) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+y", "super+y", "meta+y":
 			m.toggleYoloMode()
 			return m, nil
-		case "ctrl+o":
+		case "ctrl+o", "ctrl+t":
 			m.toggleVerboseReasoning(m.state != tuiRunning)
+			return m, finalize(m, cmds)
+		case "ctrl+h":
+			m.showWorkspace = !m.showWorkspace
 			return m, finalize(m, cmds)
 		case "ctrl+b":
 			m.toggleShellOutput()
@@ -2153,6 +2160,12 @@ func (m chatTUI) handleApprovalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return answer(true, true, true)
 	case "4", "n":
 		return answer(false, false, false)
+	case "5", "r":
+		// REX-73: redirect verdict — "tell me what to do instead".
+		m.redirectInput = true
+		m.input.Reset()
+		m.input.Focus()
+		return m, nil
 	}
 	return m, nil
 }
@@ -2284,6 +2297,11 @@ func (m chatTUI) View() tea.View {
 	}
 	if gt := m.gitTag(); gt != "" {
 		status += " · " + gt
+		if m.showWorkspace {
+			if ws := m.workspaceTag(); ws != "" {
+				status += " · " + dim(ws)
+			}
+		}
 	}
 	// The spinning "thinking…" indicator is its own line ABOVE the input box (shown
 	// only while a turn runs); the status/data rows stay below. This mirrors Claude
@@ -2538,6 +2556,19 @@ func (m chatTUI) effortTag() string {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("#2563eb")).Bold(true).Render(body)
 	}
 	return dim(body)
+}
+
+// workspaceTag returns the current working directory for the status line.
+func (m chatTUI) workspaceTag() string {
+	cwd, _ := os.Getwd()
+	if cwd == "" {
+		return ""
+	}
+	home, _ := os.UserHomeDir()
+	if home != "" && strings.HasPrefix(cwd, home) {
+		cwd = "~" + cwd[len(home):]
+	}
+	return cwd
 }
 
 // shortTokens prints token counts compactly: 1_500 → "1.5K", 142_000 → "142.0K", 1_000_000 → "1.0M".
@@ -3243,6 +3274,14 @@ func (m *chatTUI) runSlashCommand(input string) tea.Cmd {
 		m.showSandboxStatus()
 	case "/effort":
 		return m.runEffortCommand(input)
+	case "/defaults":
+		m.echoLocalCommand(input)
+		m.showDefaults()
+		return nil
+	case "/shortcuts":
+		m.echoLocalCommand(input)
+		m.showShortcuts()
+		return nil
 	case "/auto-plan":
 		m.echoLocalCommand(input)
 		m.runAutoPlanCommand(input)
@@ -3428,6 +3467,24 @@ func (m *chatTUI) commandNames() string {
 // showSandboxStatus displays the current sandbox configuration and whether
 // the OS sandbox backend is available. It reads from the stored config so
 // the user can inspect sandbox state without leaving the TUI (closes #3316).
+// showDefaults displays current default settings (model, effort, language,
+// output style) as a notice block. REX-83.
+func (m *chatTUI) showDefaults() {
+	var b strings.Builder
+	b.WriteString("defaults\n")
+	b.WriteString("  model            " + m.label + "\n")
+	if m.effortLevel != "" {
+		b.WriteString("  effort           " + m.effortLevel + "\n")
+	}
+	b.WriteString("  output style     " + m.outputStyle + "\n")
+	b.WriteString("  use /effort, /model, /reasoning-language to change\n")
+	m.notice(b.String())
+}
+
+// showShortcuts displays available keyboard shortcuts. REX-79.
+func (m *chatTUI) showShortcuts() {
+	m.notice("shortcuts\n  Shift+Tab    toggle plan mode\n  Ctrl+Y       toggle YOLO mode\n  Ctrl+O/T     toggle thinking display\n  Ctrl+H       toggle workspace path\n  Ctrl+C       copy selection / cancel turn\n  Esc          cancel turn / clear input\n  \xe2\x86\x91/\xe2\x86\x93          browse input history\n  /defaults    show current settings\n  /shortcuts   show this list\n  /new         start fresh session\n  /resume      pick a previous session\n  /clear       clear transcript")
+}
 func (m *chatTUI) showSandboxStatus() {
 	if m.cfg == nil {
 		m.notice("sandbox: config not loaded")

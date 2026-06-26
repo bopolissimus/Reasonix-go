@@ -114,3 +114,23 @@ func TestWrapAnsiCJK(t *testing.T) {
 		t.Errorf("first line exceeds width: %d > 10", visibleWidth(lines[0]))
 	}
 }
+
+// TestRenderSanitizesHTML covers REX-93: the goldmark renderer must not pass
+// raw HTML through to output. The renderer is constructed without WithUnsafe()
+// so script tags and HTML elements must be stripped from rendered output.
+func TestRenderSanitizesHTML(t *testing.T) {
+	r := newMarkdownRenderer(80)
+	attacks := []string{
+		"<script>alert(1)</script>",
+		"<img src=x onerror=alert(1)>",
+		"<iframe src=evil.com></iframe>",
+		"<!-- comment hiding <script> -->",
+		"text<script>alert(1)</script>more",
+	}
+	for _, payload := range attacks {
+		got := r.Render(payload)
+		if strings.Contains(got, "<script>") || strings.Contains(got, "<img") || strings.Contains(got, "<iframe") {
+			t.Errorf("REX-93: raw HTML not sanitized in output for payload %q: %q", payload, got)
+		}
+	}
+}

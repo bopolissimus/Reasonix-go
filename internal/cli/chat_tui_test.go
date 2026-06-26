@@ -2221,3 +2221,44 @@ func TestShiftTabStillTogglesPlanUnderClassicShortcutLayout(t *testing.T) {
 		t.Fatalf("Shift+Tab changed approval mode to %q", got)
 	}
 }
+
+// TestInputHistoryDownRestoresDraft covers REX-87: pressing DOWN past the end
+// of submitted input history restores the original draft text.
+func TestInputHistoryDownRestoresDraft(t *testing.T) {
+	m := newTestChatTUI()
+	m.rememberSubmittedInput("first message")
+	m.rememberSubmittedInput("second message")
+	original := m.input.Value()
+
+	// Press UP to enter history mode — should show last submitted input
+	if !m.recallSubmittedInput(-1) {
+		t.Fatal("REX-87: UP should enter history mode")
+	}
+	if m.input.Value() != "second message" {
+		t.Errorf("REX-87: UP should show last submitted input, got %q", m.input.Value())
+	}
+
+	// Press UP again — should show first message
+	if !m.recallSubmittedInput(-1) {
+		t.Fatal("REX-87: UP should navigate to older input")
+	}
+	if m.input.Value() != "first message" {
+		t.Errorf("REX-87: second UP should show first message, got %q", m.input.Value())
+	}
+
+	// Press DOWN — should show second message again
+	if !m.recallSubmittedInput(1) {
+		t.Fatal("REX-87: DOWN should navigate to newer input")
+	}
+	if m.input.Value() != "second message" {
+		t.Errorf("REX-87: DOWN should show second message, got %q", m.input.Value())
+	}
+
+	// Press DOWN past the end — should restore original draft
+	if !m.recallSubmittedInput(1) {
+		t.Fatal("REX-87: DOWN past end should restore draft")
+	}
+	if m.input.Value() != original {
+		t.Errorf("REX-87: DOWN past end should restore draft %q, got %q", original, m.input.Value())
+	}
+}
