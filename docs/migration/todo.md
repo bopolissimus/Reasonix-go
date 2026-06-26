@@ -38,7 +38,7 @@
 ## Phase C: Web Search + Tools
 
 - [ ] REX-70 — Multi-engine web search (Exa + Tavily)
-- [ ] REX-71 — isolate_workspace + merge_worktree
+- [x] REX-71 — isolate_workspace + merge_worktree (closed — won't implement)
 
 ## Phase D: Sub-Agent + Permission
 

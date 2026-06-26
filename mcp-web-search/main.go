@@ -5,6 +5,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"math/rand"
@@ -91,42 +92,56 @@ type searchResult struct {
 // ── Config ─────────────────────────────────────────────────────────────────
 
 type config struct {
-	ExaAPIKey    string
-	TavilyAPIKey string
-	Cooldown     time.Duration
-	engines      []string
+	ExaAPIKey     string
+	TavilyAPIKey  string
+	KeysFile      string
+	ExaKeyName    string
+	TavilyKeyName string
+	Cooldown      time.Duration
+	engines       []string
 }
 
 func loadConfig() config {
+	keysFile := flag.String("keys-file", "", "Path to JSON file with API keys (default: ~/.reasonix/api-keys.json)")
+	exaKeyName := flag.String("exa-key-name", "exa", "Key name for Exa in the keys file")
+	tavilyKeyName := flag.String("tavily-key-name", "tavily", "Key name for Tavily in the keys file")
+	flag.Parse()
+
 	cfg := config{
-		Cooldown: 12 * time.Hour,
-		engines:  []string{"exa", "tavily"},
+		KeysFile:      *keysFile,
+		ExaKeyName:    *exaKeyName,
+		TavilyKeyName: *tavilyKeyName,
+		Cooldown:      12 * time.Hour,
+		engines:       []string{"exa", "tavily"},
 	}
 
-	// Read API keys from environment
+	// 1. Environment variables (highest priority)
 	cfg.ExaAPIKey = os.Getenv("EXA_API_KEY")
 	cfg.TavilyAPIKey = os.Getenv("TAVILY_API_KEY")
 
-	// Also try reading from api-keys.json
+	// 2. Keys file (fallback per-engine)
 	if cfg.ExaAPIKey == "" || cfg.TavilyAPIKey == "" {
-		if keys, err := loadAPIKeys(); err == nil {
+		if keys, err := loadAPIKeys(cfg.KeysFile); err == nil {
 			if cfg.ExaAPIKey == "" {
-				cfg.ExaAPIKey = keys["exa"]
+				cfg.ExaAPIKey = keys[cfg.ExaKeyName]
 			}
 			if cfg.TavilyAPIKey == "" {
-				cfg.TavilyAPIKey = keys["tavily"]
+				cfg.TavilyAPIKey = keys[cfg.TavilyKeyName]
 			}
 		}
 	}
 	return cfg
 }
 
-func loadAPIKeys() (map[string]string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
+func loadAPIKeys(keysFile string) (map[string]string, error) {
+	if keysFile == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, err
+		}
+		keysFile = home + "/.reasonix/api-keys.json"
 	}
-	data, err := os.ReadFile(home + "/.reasonix/api-keys.json")
+	data, err := os.ReadFile(keysFile)
 	if err != nil {
 		return nil, err
 	}
@@ -424,7 +439,7 @@ func (s *server) doSearchWithEngine(query, engine string) (string, bool) {
 	switch engine {
 	case "exa":
 		if s.cfg.ExaAPIKey == "" {
-			return "Error: EXA_API_KEY not configured", true
+			return fmt.Sprintf("Error: Exa API key not configured (set EXA_API_KEY env or --keys-file with --exa-key-name)"), true
 		}
 		results, err := exaSearch(query, s.cfg.ExaAPIKey)
 		if err != nil {
@@ -435,7 +450,7 @@ func (s *server) doSearchWithEngine(query, engine string) (string, bool) {
 
 	case "tavily":
 		if s.cfg.TavilyAPIKey == "" {
-			return "Error: TAVILY_API_KEY not configured", true
+			return fmt.Sprintf("Error: Tavily API key not configured (set TAVILY_API_KEY env or --keys-file with --tavily-key-name)"), true
 		}
 		results, answer, err := tavilySearch(query, s.cfg.TavilyAPIKey)
 		if err != nil {

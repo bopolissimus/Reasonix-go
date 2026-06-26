@@ -56,10 +56,12 @@ func TestStubInputHistoryDownRestore(t *testing.T) {
 	t.Skip("REX-87: Input history DOWN after UP restore not yet implemented")
 }
 
-// TestStubNonceDelimiters covers REX-88: Dynamic nonce-based delimiters (StruQ + Spotlighting).
-// Post-migration P0 from prompt injection research synthesis.
+// TestStubNonceDelimiters covered REX-88: Dynamic nonce-based delimiters.
+// Implemented: DataNonce + DataNonceSafe in security/nonce.go, context plumbing
+// in agent, <nonce-context> injection via control.Compose. Tests in
+// internal/security/nonce_test.go and internal/control/ ensure coverage.
 func TestStubNonceDelimiters(t *testing.T) {
-	t.Skip("REX-88: Nonce-based delimiters not yet implemented (post-migration P0)")
+	// REX-88 is implemented — tests live in security/nonce_test.go.
 }
 
 // TestStubOutputValidation covers REX-89: Output validation / content allowlist.

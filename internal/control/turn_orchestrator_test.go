@@ -28,7 +28,7 @@ func TestTurnOrchestratorRunsForegroundUnit(t *testing.T) {
 	if len(runner.inputs) != 1 {
 		t.Fatalf("runner inputs = %d, want 1", len(runner.inputs))
 	}
-	if !strings.HasPrefix(runner.inputs[0], PlanModeMarker) {
+	if !strings.HasPrefix(stripNonceBlock(runner.inputs[0]), PlanModeMarker) {
 		t.Fatalf("orchestrator should compose plan marker before running, got %q", runner.inputs[0])
 	}
 }
@@ -185,8 +185,10 @@ func TestTurnOrchestratorRefTurnRecordsVisibleDisplay(t *testing.T) {
 	if gotDisplay != visible {
 		t.Fatalf("display recorder display = %q, want visible prompt %q", gotDisplay, visible)
 	}
-	if gotContent != runner.inputs[0] {
-		t.Fatalf("display recorder content = %q, want persisted model input %q", gotContent, runner.inputs[0])
+	// Display recording strips transient blocks (nonce, reasoning-language, etc.)
+	// so the displayed content matches what the user sees, not the raw model input.
+	if gotContent != agent.StripTransientUserBlocks(runner.inputs[0]) {
+		t.Fatalf("display recorder content = %q, want stripped model input %q", gotContent, agent.StripTransientUserBlocks(runner.inputs[0]))
 	}
 }
 
@@ -212,7 +214,7 @@ func TestTurnOrchestratorCheckpointBoundaryPrecedesUserMessage(t *testing.T) {
 	if !c.CheckpointHasBoundary(0) {
 		t.Fatal("checkpoint boundary should be available for the orchestrated turn")
 	}
-	if len(sess.Messages) != 2 || sess.Messages[1].Content != "write the test" {
+	if len(sess.Messages) != 2 || !strings.HasSuffix(sess.Messages[1].Content, "write the test") {
 		t.Fatalf("session messages after turn = %+v, want system + user", sess.Messages)
 	}
 	loaded, err := agent.LoadSession(path)

@@ -27,6 +27,9 @@ func (o *turnOrchestrator) runTurnWithRawDisplay(ctx context.Context, input, raw
 	ctx = agent.WithUserImages(ctx, c.inputImages(input))
 	ctx = agent.WithMemoryCompilerSourceInput(ctx, raw)
 	input = c.Compose(input)
+	if c.dataNonce != "" {
+		ctx = agent.WithDataNonce(ctx, c.dataNonce)
+	}
 	startMessages := c.messageCount()
 	defer c.snapshotActivityIfChanged(startMessages)
 	defer c.recordDisplayForNewUser(startMessages, display)

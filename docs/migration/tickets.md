@@ -98,11 +98,11 @@ Implement `web_search` tool using APIs in `~/.reasonix/api-keys.json`:
 - Go-idiomatic: use `net/http`, not undici
 
 ### REX-71: isolate_workspace + merge_worktree tools
-**Type:** Task **Priority:** Low
+**Type:** Task **Priority:** Low **Status:** Closed — won't implement
 
 - `isolate_workspace` — create Git worktree for safe refactors
 - `merge_worktree` — merge completed worktree back and cleanup
-- Go stdlib `os/exec` for git commands
+- **Decision:** Not implementing. Git worktrees add complexity for marginal gain — users can manually `git worktree` if needed.
 
 ---
 

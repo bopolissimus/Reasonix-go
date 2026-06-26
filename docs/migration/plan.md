@@ -52,7 +52,7 @@
 | Ticket | Feature | Status |
 |--------|---------|--------|
 | REX-70 | Multi-engine web search (Exa + Tavily, keys in api-keys.json) | Queued |
-| REX-71 | isolate_workspace + merge_worktree | Queued |
+| REX-71 | isolate_workspace + merge_worktree | Closed — won't implement |
 
 ### Phase D — Sub-Agent + Permission Hardening
 

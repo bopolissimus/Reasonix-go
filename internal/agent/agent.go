@@ -114,6 +114,21 @@ func WithSourceName(ctx context.Context, name string) context.Context {
 	return context.WithValue(ctx, sourceNameCtxKey{}, name)
 }
 
+// dataNonceCtxKey is the context key for the per-turn data nonce (REX-88).
+type dataNonceCtxKey struct{}
+
+// WithDataNonce stamps the current turn's data-boundary nonce onto ctx so the
+// agent can wrap tool outputs with it and the model can verify boundaries.
+func WithDataNonce(ctx context.Context, nonce string) context.Context {
+	return context.WithValue(ctx, dataNonceCtxKey{}, nonce)
+}
+
+// DataNonceFromContext returns the per-turn data nonce, or "" if none was set.
+func DataNonceFromContext(ctx context.Context) string {
+	n, _ := ctx.Value(dataNonceCtxKey{}).(string)
+	return n
+}
+
 // WithParentSession stamps the active parent session ID onto a turn context so
 // persisted sub-agents can record and enforce their owning conversation.
 func WithParentSession(ctx context.Context, parentSession string) context.Context {
@@ -763,10 +778,17 @@ func (a *Agent) Run(ctx context.Context, input string) (runErr error) {
 	streamRecoveries := 0
 	graceRound := false
 	executorHandoff := a.executorHandoffGuard && strings.Contains(input, executorHandoffMarker)
+	// Per-turn data nonce (REX-88): prefer the caller-supplied nonce from the
+	// controller (one per user message), falling back to per-step generation
+	// when none is set (e.g. sub-agent runs or replay).
+	if n := DataNonceFromContext(ctx); n != "" {
+		a.dataNonce = n
+	}
 	for step := 0; a.maxSteps <= 0 || step < a.maxSteps || graceRound; step++ {
 		a.turn++
-		// Generate a new data nonce for this turn (REX-88).
-		a.dataNonce = security.DataNonce()
+		if a.dataNonce == "" {
+			a.dataNonce = security.DataNonce()
+		}
 		// Consume a queued steer and persist it to the session so it
 		// survives tab switches and history replay. The model sees it as
 		// guidance (with a prefix), not a new task. One cache miss per
@@ -2308,5 +2330,13 @@ func (a *Agent) wrapNonce(output, source string) string {
 	if a.dataNonce == "" {
 		return output
 	}
-	return fmt.Sprintf("<data id=%q source=%q>\n%s\n</data>", a.dataNonce, source, output)
+	nonce := a.dataNonce
+	// If the nonce string accidentally appears in this output (1 in 4B chance
+	// per 8-char window), skip wrapping — a bare nonce in prose doesn't form a
+	// valid delimiter boundary, and changing the nonce mid-turn would invalidate
+	// the <nonce-context> instruction the model already received.
+	if strings.Contains(output, nonce) {
+		return output
+	}
+	return fmt.Sprintf("<data id=%q source=%q>\n%s\n</data>", nonce, source, output)
 }

@@ -364,6 +364,8 @@ func TestRunTurnRecordsDisplayForPersistedUserMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The handoff runner prepends "handoff: " to the input, and recordDisplay
+	// strips transient blocks (nonce, etc.) before recording.
 	if gotContent != "handoff: expanded prompt" {
 		t.Fatalf("display recorded against %q, want persisted user message", gotContent)
 	}
@@ -632,7 +634,7 @@ func TestTwoModelShortChoiceReplySkipsPlanner(t *testing.T) {
 	if strings.Contains(reqText, "Reasonix executor handoff") {
 		t.Fatalf("short choice reply should not be wrapped as a planner handoff:\n%s", reqText)
 	}
-	if got := lastUserMessage(execProv.requests[0].Messages); got != "1" {
+	if got := lastUserMessage(execProv.requests[0].Messages); agent.StripTransientUserBlocks(got) != "1" {
 		t.Fatalf("executor last user = %q, want raw choice reply", got)
 	}
 }
@@ -1398,7 +1400,7 @@ func TestSendWhileRunningDoesNotInterleaveTurns(t *testing.T) {
 			users = append(users, m.Content)
 		}
 	}
-	if len(users) != 1 || users[0] != "first" {
+	if len(users) != 1 || agent.StripTransientUserBlocks(users[0]) != "first" {
 		t.Fatalf("user turns = %v, want only first turn recorded", users)
 	}
 }
@@ -1502,7 +1504,7 @@ func TestApprovedPlanAutoApproveEndsWithExecutionTurn(t *testing.T) {
 	// The plan approval auto-approves writers for the execution turn only. A later
 	// turn does not inherit it, and "继续" carries no special meaning — Compose must
 	// not inject any marker, and the next writer falls back to per-tool approval.
-	if got := c.Compose("继续"); got != "继续" {
+	if got := c.Compose("继续"); agent.StripTransientUserBlocks(got) != "继续" {
 		t.Fatalf("a paused approved plan must not marker-prefix the next turn, got %q", got)
 	}
 	allow, _, err := gateApprover{c}.Approve(context.Background(), "write_file", "/tmp/a", nil)
@@ -1551,7 +1553,7 @@ func TestApprovedPlanDoesNotAutoApproveNonContinuationTurn(t *testing.T) {
 	if err := c.runTurn(context.Background(), "plan this"); err != nil {
 		t.Fatal(err)
 	}
-	if got := c.Compose("先别继续"); got != "先别继续" {
+	if got := c.Compose("先别继续"); agent.StripTransientUserBlocks(got) != "先别继续" {
 		t.Fatalf("non-continuation input should not be marker-prefixed, got %q", got)
 	}
 

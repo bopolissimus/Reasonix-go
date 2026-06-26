@@ -106,6 +106,12 @@ type Controller struct {
 	// Close cancels its still-running jobs.
 	jobs *jobs.Manager
 
+	// dataNonce is the per-turn random boundary token for the nonce-based
+	// delimiter defense (REX-88). Generated in Compose, injected into the turn
+	// text as a <nonce-context> block, and passed to the agent via context so
+	// tool outputs can be wrapped with it. Empty when security is disabled.
+	dataNonce string
+
 	// mcp owns the session's live tool/plugin surface — the MCP plugin Host, the
 	// tool registry the executor reads each turn, and the session-scoped context a
 	// hot-added stdio server binds its subprocess to — behind its own lock, off
@@ -363,7 +369,20 @@ func (c *Controller) recordDisplayForNewUser(startMessages int, display string) 
 	}
 	for _, m := range msgs[startMessages:] {
 		if m.Role == provider.RoleUser {
-			c.recordDisplay(m.Content, display)
+			content := m.Content
+			// Strip the planner-handoff preamble (if present) before stripping
+			// transient blocks, so blocks that come immediately after "handoff: "
+			// are still removed from the display recording.
+			const handoffPrefix = "handoff: "
+			hadHandoff := strings.HasPrefix(content, handoffPrefix)
+			if hadHandoff {
+				content = content[len(handoffPrefix):]
+			}
+			content = agent.StripTransientUserBlocks(content)
+			if hadHandoff {
+				content = handoffPrefix + content
+			}
+			c.recordDisplay(content, display)
 			return
 		}
 	}
@@ -1110,6 +1129,9 @@ func (c *Controller) Run(ctx context.Context, input string) error {
 	ctx = jobs.WithSession(ctx, parentSession)
 	ctx = agent.WithUserImages(ctx, c.inputImages(input))
 	input = c.Compose(input)
+	if c.dataNonce != "" {
+		ctx = agent.WithDataNonce(ctx, c.dataNonce)
+	}
 	startMessages := c.messageCount()
 	defer c.snapshotActivityIfChanged(startMessages)
 	if c.hooks.Enabled() {
